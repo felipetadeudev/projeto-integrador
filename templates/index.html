@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Tarefas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .completed {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-3xl font-bold mb-6 text-center">Gerenciador de Tarefas</h1>
+        <form action="/add" method="post" class="mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="text" name="title" placeholder="Título" required 
+                       class="p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="text" name="description" placeholder="Descrição" required 
+                       class="p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input type="date" name="due_date" required 
+                       class="p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <button type="submit" class="mt-4 w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors">
+                Adicionar Tarefa
+            </button>
+        </form>
+
+        <table class="min-w-full bg-white border">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="py-2 px-4 border-b text-left">Título</th>
+                    <th class="py-2 px-4 border-b text-left">Descrição</th>
+                    <th class="py-2 px-4 border-b text-left">Data de Vencimento</th>
+                    <th class="py-2 px-4 border-b text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr class="border-b {% if task.status == 'completed' %}completed bg-gray-200{% endif %}">
+                    <td class="py-2 px-4">
+                        <span class="{% if task.status == 'completed' %}completed{% endif %}">{{ task.title }}</span>
+                        <input type="text" name="title" value="{{ task.title }}" class="hidden w-full p-2 border border-gray-300 rounded" readonly>
+                    </td>
+                    <td class="py-2 px-4">
+                        <span class="{% if task.status == 'completed' %}completed{% endif %}">{{ task.description }}</span>
+                        <input type="text" name="description" value="{{ task.description }}" class="hidden w-full p-2 border border-gray-300 rounded" readonly>
+                    </td>
+                    <td class="py-2 px-4">
+                        <span class="{% if task.status == 'completed' %}completed{% endif %}">{{ task.due_date }}</span>
+                        <input type="date" name="due_date" value="{{ task.due_date }}" class="hidden w-full p-2 border border-gray-300 rounded" readonly>
+                    </td>
+                    <td class="py-2 px-4 text-center">
+                        <div class="flex justify-center space-x-2">
+                            <!-- Formulário de Edição -->
+                            <form action="/update/{{ loop.index0 }}" method="post" class="inline edit-form">
+                                <input type="hidden" name="title" value="{{ task.title }}">
+                                <input type="hidden" name="description" value="{{ task.description }}">
+                                <input type="hidden" name="due_date" value="{{ task.due_date }}">
+                                <input type="hidden" name="status" value="{{ task.status }}">
+                                <!-- Botão Editar -->
+                                <button type="button" class="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded transition-colors" onclick="enableEdit(this)">
+                                    <!-- Ícone de Editar SVG -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M11 5h2M15.071 5.071a2 2 0 010 2.828L7.828 17.829a2 2 0 01-.586.707l-4 4a2 2 0 01-2.828-2.828l4-4a2 2 0 01.707-.586L15.071 5.071z" />
+                                    </svg>
+                                </button>
+
+                                <!-- Botão Salvar (inicialmente oculto) -->
+                                <button type="button" class="bg-green-500 hover:bg-green-600 text-white p-2 rounded hidden transition-colors" onclick="saveEdit(this)">
+                                    <!-- Ícone de Salvar SVG -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
+                            </form>
+
+                            <!-- Formulário de Conclusão -->
+                            <form action="/update/{{ loop.index0 }}" method="post" class="inline conclude-form">
+                                <input type="hidden" name="title" value="{{ task.title }}">
+                                <input type="hidden" name="description" value="{{ task.description }}">
+                                <input type="hidden" name="due_date" value="{{ task.due_date }}">
+                                <!-- Toggle de status -->
+                                <input type="hidden" name="status" value="{% if task.status != 'completed' %}completed{% else %}pending{% endif %}">
+                                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded transition-colors">
+                                    <!-- Ícone de Concluir SVG -->
+                                    {% if task.status != 'completed' %}
+                                    <!-- Ícone de Marcar como Concluído -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    {% else %}
+                                    <!-- Ícone de Marcar como Pendente -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <!-- Ícone de Desmarcar Concluído (Lixeira) -->
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    {% endif %}
+                                </button>
+                            </form>
+
+                            <!-- Botão Excluir -->
+                            <a href="/delete/{{ loop.index0 }}" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors">
+                                <!-- Ícone de Lixeira SVG -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function enableEdit(button) {
+            const row = button.closest('tr');
+            const spans = row.querySelectorAll('td > span');
+            const inputs = row.querySelectorAll('td > input[type="text"], td > input[type="date"]');
+            spans.forEach(span => span.classList.add('hidden'));
+            inputs.forEach(input => {
+                input.classList.remove('hidden');
+                input.removeAttribute('readonly');
+            });
+            // Ocultar o botão Editar, mostrar o botão Salvar
+            const editForm = row.querySelector('.edit-form');
+            const concludeForm = row.querySelector('.conclude-form');
+            editForm.querySelector('button.bg-yellow-500').classList.add('hidden');
+            concludeForm.classList.add('hidden'); // Oculta o formulário de conclusão
+            editForm.querySelector('button.bg-green-500').classList.remove('hidden');
+        }
+
+        function saveEdit(button) {
+            const row = button.closest('tr');
+            const inputs = row.querySelectorAll('td > input[type="text"], td > input[type="date"]');
+            const spans = row.querySelectorAll('td > span');
+            const editForm = row.querySelector('.edit-form');
+
+            // Atualizar os spans com os valores dos inputs
+            spans.forEach((span, index) => {
+                span.textContent = inputs[index].value;
+                span.classList.remove('hidden');
+            });
+
+            // Ocultar os inputs novamente
+            inputs.forEach(input => {
+                input.classList.add('hidden');
+                input.setAttribute('readonly', true);
+            });
+
+            // Ocultar o botão Salvar e mostrar os botões Editar e Concluir
+            editForm.querySelector('button.bg-green-500').classList.add('hidden');
+            editForm.querySelector('button.bg-yellow-500').classList.remove('hidden');
+            const concludeForm = row.querySelector('.conclude-form');
+            concludeForm.classList.remove('hidden');
+
+            // Atualizar os valores no formulário oculto para submissão
+            editForm.querySelector('input[name="title"]').value = inputs[0].value;
+            editForm.querySelector('input[name="description"]').value = inputs[1].value;
+            editForm.querySelector('input[name="due_date"]').value = inputs[2].value;
+            // O status permanece inalterado
+
+            // Submeter o formulário para salvar as alterações
+            editForm.submit();
+        }
+    </script>
+</body>
+</html>
